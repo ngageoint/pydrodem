@@ -1,7 +1,7 @@
 ## Welcome to pydrodem!
 **pydrodem** is a collection of python-based tools for hydrologically conditioning digital elevation models (DEMs). The DEM conditioning tools are designed to wrap around the functionality of Geopandas, WhiteBoxTools, and TauDEM to allow for high resolution DEMs to be conditioned in a flexible, user-customizable way. 
 
-The codes were developed for a parallel computing environment, but can also be run on a single machine or within cloud by running the appropriate shell script.
+The codes were developed for a parallel computing environment, but can also be run on a single machine or within the cloud by running the appropriate shell script.
 
 New versions are still in development. If you find a bug or issue, please let the team know by submitting a ticket.
 
