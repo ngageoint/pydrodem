@@ -18,15 +18,25 @@ If you'd like to contribute to this project, please make a pull request. We'll r
 
 ### Dependencies
 Whitebox Tools
+
 TauDEM
+
 Boto3
+
 Botocore
+
 GDAL
+
 Geopandas
+
 Numpy
+
 Scipy
+
 Shapely
+
 Pandas
+
 Matplotlib
 
 ### Quick Start
