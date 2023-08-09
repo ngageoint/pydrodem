@@ -8,7 +8,7 @@ New versions are still in development. If you find a bug or issue, please let th
 ### Origin
 pydrodem was developed at the National Geospatial-Intelligence Agency (NGA) by federal government employees in the course of their official duties, so it is <strong>not</strong> subject to copyright protection and is in the public domain in the United States. 
 
-You are free to use the core public domain portions of pydrodem for any purpose. Modifications back to the cores of any dependency functions are subject to the original licenses and are separate from the core public domain work of FDE. 
+You are free to use the core public domain portions of pydrodem for any purpose. Modifications back to the cores of any dependency functions are subject to the original licenses and are separate from the core public domain work of pydrodem. 
 
 ### Transparency
 NGA is posting code created by government officers in their official duties in transparent platforms to increase the impact and reach of taxpayer-funded code. NGA is also posting pydrodem to give NGA partners insight into how elevation data is quality controlled within NGA to help partners understand parts of quality assurance checks.
