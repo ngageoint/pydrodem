@@ -3,7 +3,7 @@
 
 The code was developed for a parallel computing environment, but can also be run on a single machine or within the cloud by running the appropriate shell script.
 
-New versions are still in development. If you find a bug or issue, please let the team know by submitting a ticket.
+New versions are still in development. If you find a bug or issue, please let the team know by submitting a pull request.
 
 ### Origin
 pydrodem was developed at the National Geospatial-Intelligence Agency (NGA) by federal government employees in the course of their official duties, so it is <strong>not</strong> subject to copyright protection and is in the public domain in the United States. 
