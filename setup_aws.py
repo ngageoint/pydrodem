@@ -44,26 +44,32 @@ class PydemSetup():
         self.config.read(config_file)
         self.starttime = time.time()
 
-        self.WBT_path = os.path.join(self.config.get("paths", "WBT_path"))
+        self.WBT_path = os.path.join(self.get_config("paths", "WBT_path"))
 
     def identify_srcdem(self, input_id, pathlist):
+        """
+        Identify the source DEM based on the path.
+        """
         dem_path = ft.tilesearch(input_id, pathlist)
         if dem_path is None:
-            raise(f"Missing DEM path for {input_id}")
+            raise ValueError(f"Missing DEM path for {input_id}")
         
-        if "TDT" in dem_path:
-            return "TDT"
-        elif "TDF" in dem_path:
-            return "TDF"
+        if TDT_STRING in dem_path:
+            return TDT_STRING
+        elif TDF_STRING in dem_path:
+            return TDF_STRING
         else:
             return ""
 
     def setup_region(self):
+        """
+        Set up the region based on the provided configuration.
+        """
         """ IMPORT REGION AND PATH INFORMATION """
-        projectname = self.config.get("region", "projectname")
-        basinID = self.config.get("region", "basinID")
-        project_shp_file = self.config.get("region", "shp_file")
-        bound_box = json.loads(self.config.get("region", "bound_box"))
+        projectname = self.get_config("region", "projectname")
+        basinID = self.get_config("region", "basinID")
+        project_shp_file = self.get_config("region", "shp_file")
+        bound_box = json.loads(self.get_config("region", "bound_box"))
         overwrite = self.config.getboolean("region", "overwrite")
 
         if len(basinID) == 10:
@@ -89,7 +95,7 @@ class PydemSetup():
             raise Exception('No name or region information given')
 
         # Create shape file for AOI and buffer
-        self.shapes_dir = os.path.join(self.config.get("paths", "shapes_dir"),
+        self.shapes_dir = os.path.join(self.get_config("paths", "shapes_dir"),
                                        f"{projectname}")
         if not os.path.exists(self.shapes_dir):
             os.makedirs(self.shapes_dir)
@@ -97,10 +103,10 @@ class PydemSetup():
         self.aoi_buffer_shpfile = os.path.join(self.shapes_dir,
                                                f"{projectname}_buffer.shp")
 
-        basins_shp_prefix = self.config.get("paths", "basins_shp_prefix")
-        bucket = self.config.get("paths", "bucket")
+        basins_shp_prefix = self.get_config("paths", "basins_shp_prefix")
+        bucket = self.get_config("paths", "bucket")
         basins_dir_prefix = f'/vsis3/{bucket}/{basins_shp_prefix}'
-        hybas_lvl1_shp = self.config.get("paths", "hybas_lvl1_shp")
+        hybas_lvl1_shp = self.get_config("paths", "hybas_lvl1_shp")
 
         hybas_lvl1_gdf = gpd.read_file(hybas_lvl1_shp)
         hybas_region_dct = {'1': 'af',
@@ -136,28 +142,27 @@ class PydemSetup():
             hybasin_region_lst = list(hybas_region_gdf.region.values)
 
         # buffer polygon and write shape files
-        aoi_gdf = gpd.GeoDataFrame(geometry=[project_poly], crs="EPSG:4326")
+        aoi_gdf = gpd.GeoDataFrame(geometry=[project_poly], crs=EPSG_CODE)
 
-        if (not os.path.exists(self.aoi_shpfile)) or (overwrite):
-            aoi_gdf.to_file(self.aoi_shpfile)
+        write_shapefile_if_not_exists(self.aoi_shpfile, aoi_gdf, overwrite)
 
         if (not os.path.exists(self.aoi_buffer_shpfile)) or (overwrite):
             if not region_type == 'bbox':
-                aoi_buffer_gdf = pyct.buffer_gdf(aoi_gdf, 1e3)  # 1km buffer
+                aoi_buffer_gdf = pyct.buffer_gdf(aoi_gdf, BUFFER_SIZE)  # 1km buffer
                 aoi_buffer_gdf.to_file(self.aoi_buffer_shpfile)
             else:
                 self.aoi_buffer_shpfile = self.aoi_shpfile
 
         # Build txt file of tiles within project
         self.tiles_txt = os.path.join(
-            self.config.get("paths", "project_txt_path"),
+            self.get_config("paths", "project_txt_path"),
             f'{projectname}.txt')
         self.project_tile_shp = os.path.join(self.shapes_dir,
                                              f"{projectname}_tiles.shp")
         if not os.path.exists(os.path.dirname(self.tiles_txt)):
             os.makedirs(os.path.dirname(self.tiles_txt))
 
-        DEM_shpfile = os.path.join(self.config.get("paths", "DEM_shpfile"))
+        DEM_shpfile = os.path.join(self.get_config("paths", "DEM_shpfile"))
         DEM_cells_gdf = gpd.read_file(DEM_shpfile)
         aoi_buffer_gdf = gpd.read_file(self.aoi_buffer_shpfile)
         project_poly = list(aoi_buffer_gdf.geometry)[0]
@@ -180,7 +185,7 @@ class PydemSetup():
 
         # Build txt file of tiles within buffered project
         self.tiles_buffer_txt = os.path.join(
-            self.config.get("paths", "project_txt_path"),
+            self.get_config("paths", "project_txt_path"),
             f'{projectname}_buffer.txt')
         self.project_tile_buffer_shp = os.path.join(
             self.shapes_dir, f"{projectname}_tiles_buffer.shp")
@@ -210,11 +215,11 @@ class PydemSetup():
                 filehandle.write(f"{tilename}\n")
 
         # build path list
-        base_DEM = self.config.get("parameters-noise-removal", "base_DEM")
+        base_DEM = self.get_config("parameters-noise-removal", "base_DEM")
         DEM_prefix_list = os.path.join(
-            self.config.get("paths", "DEM_prefix_list"))
-        dembucket = self.config.get("paths", "DEM_bucket")
-        tdtprefix = self.config.get("paths", "TDT_prefix")
+            self.get_config("paths", "DEM_prefix_list"))
+        dembucket = self.get_config("paths", "DEM_bucket")
+        tdtprefix = self.get_config("paths", "TDT_prefix")
 
         if not os.path.exists(DEM_prefix_list):
             print('  build full prefix list')
@@ -223,8 +228,8 @@ class PydemSetup():
             tdt_prefix_list = aws.get_dir_list_files(dembucket, tdtprefix,
                                                      searchtxt="DEM.tif",
                                                      excludetxt=None)
-            if base_DEM == "TDF":
-                tdfprefix = self.config.get("paths", "TDF_prefix")
+            if base_DEM == TDF_STRING:
+                tdfprefix = self.get_config("paths", "TDF_prefix")
                 tdf_prefix_list = aws.get_dir_list_files(dembucket, tdfprefix,
                                                          searchtxt="DEM.tif",
                                                          excludetxt=None)
@@ -233,7 +238,7 @@ class PydemSetup():
                     if tile_path is None:
                         tile_path = ft.tilesearch(tile, tdt_prefix_list)
                     tdx_paths.append(tile_path)
-            elif base_DEM == "TDT":
+            elif base_DEM == TDT_STRING:
                 tdx_paths = tdt_prefix_list
 
             tdx_vsi_paths = [f"{dembucket}/{file}" for file in tdx_paths]
@@ -242,7 +247,7 @@ class PydemSetup():
                     filehandle.write("{0}\n".format(path))
 
         self.tiles_paths_txt = os.path.join(
-            self.config.get("paths", "project_txt_path"),
+            self.get_config("paths", "project_txt_path"),
             f'{projectname}_paths.txt')
             
         with open(DEM_prefix_list) as f:
@@ -285,7 +290,7 @@ class PydemSetup():
 
     def start_log_file(self):
         """create log of run"""
-        log_files = os.path.join(self.config.get("paths", "output_log_dir"),
+        log_files = os.path.join(self.get_config("paths", "output_log_dir"),
                                  'run_logs')
         if not os.path.exists(log_files):
             os.makedirs(log_files)
@@ -308,7 +313,7 @@ class PydemSetup():
             lf.write(f'region type used: {self.region_type}\n')
 
         # update config file
-        config_dir = os.path.join(self.config.get("paths", "output_log_dir"),
+        config_dir = os.path.join(self.get_config("paths", "output_log_dir"),
                                   'auto_config_files')
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
@@ -322,18 +327,18 @@ class PydemSetup():
     def setup_outputs(self, EDM=True, FABDEM=True):
 
         temp_data_path = os.path.join(
-            self.config.get("paths", "temp_data_path"))
+            self.get_config("paths", "temp_data_path"))
         self.output_DTM_path = os.path.join(
-            self.config.get("paths", "output_DTM_dir"), "tiles")
+            self.get_config("paths", "output_DTM_dir"), "tiles")
         # Set path to output DTM mosaic
         self.output_DTMmosaic = os.path.join(
-            self.config.get("paths", "output_DTM_dir"),
+            self.get_config("paths", "output_DTM_dir"),
             'mosaics', f'{self.projectname}_DTM.tif')
         self.input_DEMmosaic = os.path.join(
-            self.config.get("paths", "output_DTM_dir"),
+            self.get_config("paths", "output_DTM_dir"),
             'mosaics', f'{self.projectname}_inputDEM.tif')
 
-        self.output_DH_path = os.path.join(self.config.get("paths",
+        self.output_DH_path = os.path.join(self.get_config("paths",
                                                            "output_dir_cond"),
                                            self.projectname)
         self.shapes_DH_dir = os.path.join(self.output_DH_path, "shape_files")
@@ -372,7 +377,7 @@ class PydemSetup():
 
         if EDM:
             self.output_EDMmosaic = os.path.join(
-                self.config.get("paths", "output_DTM_dir"),
+                self.get_config("paths", "output_DTM_dir"),
                 'mosaics', f'{self.projectname}_EDM.tif')
         else:
             self.output_EDMmosaic = ""
@@ -380,7 +385,7 @@ class PydemSetup():
 
         if FABDEM:
             self.output_FABmosaic = os.path.join(
-                self.config.get("paths", "output_DTM_dir"),
+                self.get_config("paths", "output_DTM_dir"),
                 'mosaics', f'{self.projectname}_FABDEM.tif')
         else:
             self.output_FABmosaic = ""
@@ -444,8 +449,8 @@ class PydemSetup():
 
         # Build shape files for all basins in project
         basins_shp_prefix = os.path.join(
-            self.config.get("paths", "basins_shp_prefix"))
-        bucket = self.config.get("paths", "bucket")
+            self.get_config("paths", "basins_shp_prefix"))
+        bucket = self.get_config("paths", "bucket")
         basins_dir_prefix = f'/vsis3/{bucket}/{basins_shp_prefix}'
         hybas_regions = self.config.get(
             "outputs", "hybasin_region_lst").split(' ')
@@ -576,7 +581,7 @@ class PydemSetup():
             tile_shpfile = os.path.join(outpath, f'tile_{tile}.shp')
             if not os.path.exists(tile_shpfile):
                 tile_gdf = tiles_gdf[tiles_gdf.TILE_ID == tile].copy()
-                tile_gdf.crs = "EPSG:4326"
+                tile_gdf.crs = EPSG_CODE
                 tile_gdf.to_file(tile_shpfile)
 
     def build_DH_shpfile(self, basin_work_dir):
@@ -619,7 +624,7 @@ class PydemSetup():
 
     def update_config_DH(self, work_dir):
 
-        base_unit = self.config.get("region", "base_unit")
+        base_unit = self.get_config("region", "base_unit")
 
         # Set path to output  mosaic
         self.dh_mosaic = os.path.join(self.output_DH_path, 'mosaics',
